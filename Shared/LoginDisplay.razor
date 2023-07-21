@@ -1,28 +1,22 @@
-﻿@using Microsoft.AspNetCore.Identity
-@using BlazorIdentity.Areas.Identity.Data
-
-@inject SignInManager<BlazorIdentityUser> SignInManager
-@inject UserManager<BlazorIdentityUser> UserManager
-
-<ul class="navbar-nav">
-    @if (SignInManager.IsSignedIn(User))
-    {
-        <li class="nav-item">
-            <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @UserManager.GetUserName(User)!</a>
-        </li>
-        <li class="nav-item">
-            <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index", new { area = "" })">
-                <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
-            </form>
-        </li>
-    }
-    else
-    {
-        <li class="nav-item">
-            <a class="nav-link text-dark" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link text-dark" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
-        </li>
-    }
+﻿<ul class="navbar-nav">
+    <AuthorizeView>
+        <Authorized>
+            <li class="nav-item">
+                <a id="manage" class="nav-link text-dark" href="Identity/Account/Manage/Index" title="Manage">Hello @context.User.Identity?.Name!</a>
+            </li>
+            <li class="nav-item">
+                <form id="logoutForm" class="form-inline" method="post" action="Identity/Account/Logout">
+                    <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
+                </form>
+            </li>
+        </Authorized>
+        <NotAuthorized>
+            <li class="nav-item">
+                <a class="nav-link text-dark" id="register" href="Identity/Account/Register">Register</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-dark" id="login" href="Identity/Account/Login">Login</a>
+            </li>
+        </NotAuthorized>
+    </AuthorizeView>
 </ul>
