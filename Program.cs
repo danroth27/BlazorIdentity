@@ -1,8 +1,13 @@
+using BlazorIdentity;
 using BlazorIdentity.Areas.Identity.Data;
 using BlazorIdentity.Data;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("BlazorIdentityContextConnection") ??
     throw new InvalidOperationException("Connection string 'BlazorIdentityContextConnection' not found.");
 
@@ -12,8 +17,10 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddDefaultIdentity<BlazorIdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<BlazorIdentityContext>();
 
-// Add services to the container.
 builder.Services.AddRazorPages();
+
+builder.Services.AddRazorComponents();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 
 var app = builder.Build();
 
@@ -36,6 +43,7 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+app.MapRazorComponents<App>();
 app.MapRazorPages();
 
 app.Run();
