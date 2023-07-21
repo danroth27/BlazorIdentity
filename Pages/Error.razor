@@ -1,18 +1,21 @@
-﻿@page
+﻿@page "/error"
+@using System.Diagnostics;
+@using Microsoft.AspNetCore.Antiforgery;
+@*
+Output and response caching for Blazor SSR: https://github.com/dotnet/aspnetcore/issues/49130
 @attribute [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-@Attribute [IgnoreAntiforgeryToken]
-@model ErrorModel
-@{
-    ViewData["Title"] = "Error";
-}
+*@
+@attribute [RequireAntiforgeryToken(required: false)]
+
+<PageTitle>Error</PageTitle>
 
 <h1 class="text-danger">Error.</h1>
 <h2 class="text-danger">An error occurred while processing your request.</h2>
 
-@if (Model.ShowRequestId)
+@if (ShowRequestId)
 {
     <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
+        <strong>Request ID:</strong> <code>@RequestId</code>
     </p>
 }
 
@@ -32,15 +35,9 @@
 
     public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
-    private readonly ILogger<ErrorModel> _logger;
-
-    public ErrorModel(ILogger<ErrorModel> logger)
+    protected override void OnInitialized()
     {
-        _logger = logger;
-    }
-
-    public void OnGet()
-    {
-        RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+        // No access to HttpContext: https://github.com/dotnet/aspnetcore/issues/48769
+        RequestId = Activity.Current?.Id; // ?? HttpContext.TraceIdentifier;
     }
 }
