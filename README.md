@@ -1,2 +1,3 @@
-# BlazorDefaultIdentityUI
-Blazor default identity UI
+# Blazor Identity
+
+Blazor identity UI
