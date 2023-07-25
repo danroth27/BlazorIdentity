@@ -43,6 +43,8 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+app.UseAntiforgery();
+
 app.MapRazorComponents<App>();
 app.MapRazorPages();
 
