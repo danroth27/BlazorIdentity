@@ -1,12 +1,19 @@
-﻿<ul class="navbar-nav">
+﻿@inject SignInManager<BlazorIdentityUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<ul class="navbar-nav">
     <AuthorizeView>
         <Authorized>
+            @{
+                var c = context;
+            }
             <li class="nav-item">
                 <a id="manage" class="nav-link text-dark" href="Identity/Account/Manage/Index" title="Manage">Hello @context.User.Identity?.Name!</a>
             </li>
             <li class="nav-item">
-                <form id="logoutForm" class="form-inline" method="post" action="Identity/Account/Logout">
+                <form id="logoutForm" class="form-inline" method="post" @onsubmit="Logout" @formname="logout">
                     <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
+                    <AntiforgeryToken />
                 </form>
             </li>
         </Authorized>
@@ -20,3 +27,24 @@
         </NotAuthorized>
     </AuthorizeView>
 </ul>
+
+@code {
+    ClaimsPrincipal? user;
+
+    [CascadingParameter] public Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await AuthenticationStateTask;
+        user = authenticationState.User;
+    }
+
+    async Task Logout()
+    {
+        if (SignInManager.IsSignedIn(user))
+        {
+            await SignInManager.SignOutAsync();
+            NavigationManager.NavigateTo(NavigationManager.BaseUri);
+        }
+    }
+}
