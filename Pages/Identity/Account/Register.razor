@@ -1,41 +1,48 @@
-﻿@page
-@model RegisterModel
-@{
-    ViewData["Title"] = "Register";
-}
+﻿@page "/Identity/Account/Register"
+@using Microsoft.AspNetCore.Identity.UI.Services;
+@inject UserManager<BlazorIdentityUser> UserManager
+@inject IUserStore<BlazorIdentityUser> UserStore
+@inject SignInManager<BlazorIdentityUser> SignInManager
+@inject ILogger<Register> Logger
+@inject IEmailSender EmailSender
+@inject NavigationManager NavigationManager
 
-<h1>@ViewData["Title"]</h1>
+<PageTitle>Register</PageTitle>
+
+<h1>Register</h1>
 
 <div class="row">
     <div class="col-md-4">
-        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+        <StatusMessage Message="@Message" />
+        <EditForm id="registerForm" Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator />
             <h2>Create a new account.</h2>
             <hr />
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label asp-for="Input.Email">Email</label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
+                <InputText id="email" @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <label for="email">Email</label>
+                <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label asp-for="Input.Password">Password</label>
-                <span asp-validation-for="Input.Password" class="text-danger"></span>
+                <InputText id="password" type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="password">Password</label>
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label asp-for="Input.ConfirmPassword">Confirm Password</label>
-                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                <InputText id="confirm-password" type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="confirm-password">Confirm Password</label>
+                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
             <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </form>
+        </EditForm>
     </div>
     <div class="col-md-6 col-md-offset-2">
         <section>
             <h3>Use another service to register.</h3>
             <hr />
             @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                if ((ExternalLogins?.Count ?? 0) == 0)
                 {
                     <div>
                         <p>
@@ -46,10 +53,10 @@
                 }
                 else
                 {
-                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
+                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@ReturnUrl" method="post" class="form-horizontal">
                         <div>
                             <p>
-                                @foreach (var provider in Model.ExternalLogins!)
+                                @foreach (var provider in ExternalLogins!)
                                 {
                                     <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
                                 }
@@ -62,51 +69,22 @@
     </div>
 </div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
-
-@functions {
-    private readonly SignInManager<BlazorIdentityUser> _signInManager;
-    private readonly UserManager<BlazorIdentityUser> _userManager;
-    private readonly IUserStore<BlazorIdentityUser> _userStore;
-    private readonly IUserEmailStore<BlazorIdentityUser> _emailStore;
-    private readonly ILogger<RegisterModel> _logger;
-    private readonly IEmailSender _emailSender;
-
-    public RegisterModel(
-        UserManager<BlazorIdentityUser> userManager,
-        IUserStore<BlazorIdentityUser> userStore,
-        SignInManager<BlazorIdentityUser> signInManager,
-        ILogger<RegisterModel> logger,
-        IEmailSender emailSender)
-    {
-        _userManager = userManager;
-        _userStore = userStore;
-        _emailStore = GetEmailStore();
-        _signInManager = signInManager;
-        _logger = logger;
-        _emailSender = emailSender;
-    }
+@code {
+    [SupplyParameterFromForm]
+    public InputModel Input { get; set; } = new();
 
     /// <summary>
     ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
     ///     directly from your code. This API may change or be removed in future releases.
     /// </summary>
-    [BindProperty]
-    public InputModel Input { get; set; }
+    [SupplyParameterFromQuery]
+    public string ReturnUrl { get; set; } = "";
 
     /// <summary>
     ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
     ///     directly from your code. This API may change or be removed in future releases.
     /// </summary>
-    public string ReturnUrl { get; set; }
-
-    /// <summary>
-    ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-    ///     directly from your code. This API may change or be removed in future releases.
-    /// </summary>
-    public IList<AuthenticationScheme> ExternalLogins { get; set; }
+    public IList<AuthenticationScheme>? ExternalLogins { get; set; }
 
     /// <summary>
     ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -143,59 +121,53 @@
         public string ConfirmPassword { get; set; }
     }
 
+    IEnumerable<IdentityError> identityErrors;
+    string? Message => identityErrors is null ? null : "Error: " + string.Join(", ", identityErrors.Select(error => error.Description));
 
-    public async Task OnGetAsync(string returnUrl = null)
+    protected override async Task OnInitializedAsync()
     {
-        ReturnUrl = returnUrl;
-        ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+        ExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToList();
     }
 
-    public async Task<IActionResult> OnPostAsync(string returnUrl = null)
+    public async Task RegisterUser(EditContext editContext)
     {
-        returnUrl ??= Url.Content("~/");
-        ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
-        if (ModelState.IsValid)
+        var user = CreateUser();
+
+        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        var emailStore = GetEmailStore();
+        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+        var result = await UserManager.CreateAsync(user, Input.Password);
+
+        if (result.Succeeded)
         {
-            var user = CreateUser();
+            Logger.LogInformation("User created a new account with password.");
 
-            await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-            await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-            var result = await _userManager.CreateAsync(user, Input.Password);
+            var userId = await UserManager.GetUserIdAsync(user);
+            var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+            var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+                NavigationManager.ToAbsoluteUri("Identity/Account/ConfirmEmail").AbsoluteUri, 
+                new Dictionary<string, object?> { { "userId", userId }, { "code", code }, { "returnUrl", ReturnUrl } });
 
-            if (result.Succeeded)
+            await EmailSender.SendEmailAsync(Input.Email, "Confirm your email",
+                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+
+            if (UserManager.Options.SignIn.RequireConfirmedAccount)
             {
-                _logger.LogInformation("User created a new account with password.");
-
-                var userId = await _userManager.GetUserIdAsync(user);
-                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-                var callbackUrl = Url.Page(
-                    "/Account/ConfirmEmail",
-                    pageHandler: null,
-                    values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
-                    protocol: Request.Scheme);
-
-                await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
-
-                if (_userManager.Options.SignIn.RequireConfirmedAccount)
-                {
-                    return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
-                }
-                else
-                {
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-                    return LocalRedirect(returnUrl);
-                }
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameters(
+                    NavigationManager.ToAbsoluteUri("Identity/Account/RegisterConfirmation").AbsoluteUri,
+                    new Dictionary<string, object?> { { "email", Input.Email }, { "returnUrl", ReturnUrl } }));
             }
-            foreach (var error in result.Errors)
+            else
             {
-                ModelState.AddModelError(string.Empty, error.Description);
+                await SignInManager.SignInAsync(user, isPersistent: false);
+                NavigationManager.NavigateTo(NavigationManager.ToAbsoluteUri(NavigationManager.ToBaseRelativePath(ReturnUrl)).AbsoluteUri);
             }
         }
-
-        // If we got this far, something failed, redisplay form
-        return Page();
+        else
+        {
+            identityErrors = result.Errors;
+        }
     }
 
     private BlazorIdentityUser CreateUser()
@@ -207,17 +179,17 @@
         catch
         {
             throw new InvalidOperationException($"Can't create an instance of '{nameof(BlazorIdentityUser)}'. " +
-                $"Ensure that '{nameof(BlazorIdentityUser)}' is not an abstract class and has a parameterless constructor, or alternatively " +
-                $"override the register page in /Areas/Identity/Pages/Account/Register.cshtml");
+                $"Ensure that '{nameof(BlazorIdentityUser)}' is not an abstract class and has a parameterless constructor.");
         }
     }
 
     private IUserEmailStore<BlazorIdentityUser> GetEmailStore()
     {
-        if (!_userManager.SupportsUserEmail)
+        if (!UserManager.SupportsUserEmail)
         {
             throw new NotSupportedException("The default UI requires a user store with email support.");
         }
-        return (IUserEmailStore<BlazorIdentityUser>)_userStore;
+        return (IUserEmailStore<BlazorIdentityUser>) UserStore;
     }
+
 }
