@@ -1,42 +1,42 @@
-﻿@page
-@model ConfirmEmailModel
-@{
-    ViewData["Title"] = "Confirm email";
-}
+﻿@page "/Identity/Account/ConfirmEmail"
+@inject UserManager<BlazorIdentityUser> UserManager
+@inject NavigationManager NavigationManager
 
-<h1>@ViewData["Title"]</h1>
-<partial name="_StatusMessage" model="Model.StatusMessage" />
+<PageTitle>Confirm email</PageTitle>
+
+<h1>Confirm email</h1>
+<StatusMessage Message="@statusMessage" />
 
 @code {
-    private readonly UserManager<BlazorIdentityUser> _userManager;
+    string statusMessage;
 
-    public ConfirmEmailModel(UserManager<BlazorIdentityUser> userManager)
+    [SupplyParameterFromQuery]
+    public string? UserId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Code { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
-        _userManager = userManager;
-    }
-
-    /// <summary>
-    ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-    ///     directly from your code. This API may change or be removed in future releases.
-    /// </summary>
-    [TempData]
-    public string StatusMessage { get; set; }
-    public async Task<IActionResult> OnGetAsync(string userId, string code)
-    {
-        if (userId == null || code == null)
+        if (UserId == null || Code == null)
         {
-            return RedirectToPage("/Index");
+            NavigationManager.NavigateTo("/");
         }
-
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
+        else
         {
-            return NotFound($"Unable to load user with ID '{userId}'.");
-        }
+            var user = await UserManager.FindByIdAsync(UserId);
+            if (user == null)
+            {
+                // Need a way to trigger a 404 from Blazor: https://github.com/dotnet/aspnetcore/issues/45654
+                statusMessage = $"Error loading user with ID {UserId}";
+            }
+            else
+            {
 
-        code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
-        var result = await _userManager.ConfirmEmailAsync(user, code);
-        StatusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
-        return Page();
+                var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+                var result = await UserManager.ConfirmEmailAsync(user, code);
+                statusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+            }
+        }
     }
 }
