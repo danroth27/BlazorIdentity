@@ -21,6 +21,8 @@ builder.Services.AddRazorPages();
 
 builder.Services.AddRazorComponents();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
+// Need way to access HttpContext from components: https://github.com/dotnet/aspnetcore/issues/48769
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
